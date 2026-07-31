@@ -1,7 +1,15 @@
-# claude-desktop-fedora
+<div align="center">
 
-Unofficial packaging of Claude Desktop as an `.rpm` for Fedora and other
-RPM-based Linux distributions.
+# Claude Desktop for Fedora
+
+**Unofficial `.rpm` packaging of Claude Desktop for Fedora and other RPM-based Linux distributions.**
+
+[![Build and release RPM](https://github.com/Ayush442842q/Claude-app-for-Fedora/actions/workflows/build-release.yml/badge.svg)](https://github.com/Ayush442842q/Claude-app-for-Fedora/actions/workflows/build-release.yml)
+[![Latest release](https://img.shields.io/github/v/release/Ayush442842q/Claude-app-for-Fedora?label=latest%20release)](https://github.com/Ayush442842q/Claude-app-for-Fedora/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/Ayush442842q/Claude-app-for-Fedora)](LICENSE)
+[![Fedora](https://img.shields.io/badge/Fedora-RPM--based-51A2DA?logo=fedora&logoColor=white)](https://fedoraproject.org)
+
+</div>
 
 > **Disclaimer:** this is an independent, community-maintained packaging
 > project. It is **not affiliated with, endorsed by, or supported by
@@ -11,17 +19,30 @@ RPM-based Linux distributions.
 > release. The bundled application remains Anthropic's property and is
 > subject to Anthropic's own terms of use, not this project's license.
 
-## Why
+## Contents
+
+- [Why this exists](#why-this-exists)
+- [Install](#install)
+- [Building it yourself](#building-it-yourself)
+- [Verifying a build](#verifying-a-build)
+- [How it works](#how-it-works)
+- [Documentation](#documentation)
+- [Reporting issues](#reporting-issues)
+- [License](#license)
+
+## Why this exists
 
 Anthropic currently only publishes an official Linux build of Claude
-Desktop as a `.deb`, which leaves Fedora, RHEL, and other RPM-based distro
-users without a native package. This project automates extracting the
-official `.deb` payload and repackaging it as an `.rpm`.
+Desktop through an apt repository (`.deb`), which leaves Fedora, RHEL,
+and other RPM-based distro users without a native package. This project
+downloads the official `.deb`, unpacks it, and repackages the same
+binaries as a proper `.rpm` — so Fedora users get the real app through
+their normal package manager instead of a manual workaround.
 
 ## Install
 
 Download the latest `.rpm` from the [Releases](../../releases) page and
-install it with:
+install it:
 
 ```sh
 sudo dnf install ./claude-desktop-<version>.x86_64.rpm
@@ -29,28 +50,29 @@ sudo dnf install ./claude-desktop-<version>.x86_64.rpm
 
 ## Building it yourself
 
-Requirements: `rpm-build`, `ar` (from `binutils`), `tar`, `curl`.
+**Requirements:** `rpm-build`, `ar` (from `binutils`), `tar`, `curl`.
 
-Build the latest version automatically (queries Anthropic's apt repo
-index directly, per their [official Linux docs](https://code.claude.com/docs/en/desktop-linux)):
+Build the latest version automatically — this queries Anthropic's apt
+repository index directly, per their
+[official Linux docs](https://code.claude.com/docs/en/desktop-linux):
 
 ```sh
 ./scripts/build-rpm.sh
 ```
 
-Or pin a specific version / architecture:
+Pin a specific version or architecture:
 
 ```sh
 ./scripts/build-rpm.sh --version <upstream-version> --arch amd64
 ```
 
-You can also build from an already-downloaded `.deb`:
+Or build from an already-downloaded `.deb`:
 
 ```sh
 ./scripts/build-rpm.sh --deb-path ./claude-desktop.deb
 ```
 
-The built `.rpm` is written to `dist/`.
+The built `.rpm` lands in `dist/`.
 
 ## Verifying a build
 
@@ -58,26 +80,33 @@ The built `.rpm` is written to `dist/`.
 ./scripts/verify-rpm.sh dist/claude-desktop-*.rpm
 ```
 
-Installs the package inside a clean `fedora:latest` container and checks
-that the binary, desktop entry, and icons are present, and that the app
-launches under Xvfb without crashing.
+Installs the package inside a clean `fedora:latest` container and
+confirms the binary, desktop entry, and icons are present, and that the
+app launches under `Xvfb` without crashing.
 
 ## How it works
 
-1. `scripts/fetch-deb.sh` — downloads the newest (or a pinned version of)
-   the official Claude Desktop `.deb` from Anthropic's apt repository
-   (`downloads.claude.ai/claude-desktop/apt/stable`), or accepts a local
-   copy.
-2. `scripts/extract-deb.sh` — unpacks the `.deb` and locates the Electron
-   application, icons, and `.desktop` file inside it.
-3. `scripts/map-deps.sh` — translates the Debian runtime dependency list
-   to Fedora package names for the RPM `Requires:` list.
-4. `scripts/build-rpm.sh` — stages everything into the layout expected by
-   `packaging/claude-desktop.spec` and runs `rpmbuild`.
+| Script | Role |
+|---|---|
+| `scripts/fetch-deb.sh` | Downloads the newest (or a pinned version of) the official `.deb` from Anthropic's apt repository, or accepts a local copy. |
+| `scripts/extract-deb.sh` | Unpacks the `.deb` and locates the Electron app, icons, and `.desktop` file inside it. |
+| `scripts/map-deps.sh` | Translates the Debian runtime dependency list to Fedora package names for the RPM `Requires:` list. |
+| `scripts/build-rpm.sh` | Orchestrates the above, stages everything into the layout `packaging/claude-desktop.spec` expects, and runs `rpmbuild`. |
+| `scripts/verify-rpm.sh` | Smoke-tests a built `.rpm` in a disposable container. |
 
-See [docs/VERSIONING.md](docs/VERSIONING.md) for how upstream version
-tracking works, and [CONTRIBUTING.md](CONTRIBUTING.md) for how to submit
-changes.
+See [docs/BUILD.md](docs/BUILD.md) for a full walkthrough of the pipeline
+and the specific issues that came up building against the real package.
+
+## Documentation
+
+- [docs/BUILD.md](docs/BUILD.md) — how the build pipeline works, step by step
+- [docs/VERSIONING.md](docs/VERSIONING.md) — how upstream version tracking works
+
+## Reporting issues
+
+Found a broken build, a missing dependency, or a crash on launch? See
+[CONTRIBUTING.md](CONTRIBUTING.md) for how to file a good bug report, or
+go straight to [opening an issue](../../issues/new/choose).
 
 ## License
 

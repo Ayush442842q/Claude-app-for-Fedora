@@ -1,0 +1,82 @@
+name: Bug report
+description: Report a problem with the packaging, the build scripts, or the built .rpm
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. This project only packages
+        Claude Desktop for Fedora/RPM distros — please make sure your bug is
+        about the **packaging** (build scripts, spec file, install, launch
+        crashes) and not about Claude itself (account issues, chat behavior,
+        subscription/billing). Those should go to Anthropic's own support
+        channels instead.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and didn't find a duplicate
+          required: true
+        - label: This is about the packaging/build, not about Claude Desktop's chat behavior or your Anthropic account
+          required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How did you install it?
+      options:
+        - Downloaded .rpm from a GitHub Release
+        - Built locally with scripts/build-rpm.sh
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: input
+    id: package-version
+    attributes:
+      label: Package version
+      description: Output of `rpm -q claude-desktop`
+      placeholder: claude-desktop-1.24012.9-1.fc44.x86_64
+    validations:
+      required: true
+
+  - type: input
+    id: distro-version
+    attributes:
+      label: Distro and version
+      description: Output of `cat /etc/fedora-release` (or your distro's equivalent)
+      placeholder: Fedora Linux 44
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect to happen, and what actually happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro-steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Ran `sudo dnf install ./claude-desktop-*.rpm`
+        2. Launched with `claude-desktop`
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output/logs
+      description: >
+        Terminal output from `claude-desktop` (if it crashes on launch), or
+        the relevant part of `scripts/build-rpm.sh` / `scripts/verify-rpm.sh`
+        output if this is a build problem. This will be rendered as a code
+        block automatically.
+      render: shell
