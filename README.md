@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/claude-app-icon.png" alt="Claude app icon" width="88" height="88">&nbsp;&nbsp;<img src="assets/claude-logo-mark.png" alt="Claude logo mark" width="88" height="88">
+
 # Claude Desktop for Fedora
 
 **Unofficial `.rpm` packaging of Claude Desktop for Fedora and other RPM-based Linux distributions.**
