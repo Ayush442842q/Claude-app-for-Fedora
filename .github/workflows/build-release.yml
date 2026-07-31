@@ -1,0 +1,51 @@
+name: Build and release RPM
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Upstream Claude Desktop version to package (e.g. 0.9.3)"
+        required: true
+      deb_url:
+        description: "Optional explicit .deb download URL (overrides auto-discovery)"
+        required: false
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+    steps:
+      - name: Install build dependencies
+        run: dnf install -y git rpm-build tar binutils curl podman
+
+      - uses: actions/checkout@v4
+
+      - name: Build RPM
+        run: |
+          ARGS="--version ${{ github.event.inputs.version }}"
+          if [ -n "${{ github.event.inputs.deb_url }}" ]; then
+            ARGS="$ARGS --url ${{ github.event.inputs.deb_url }}"
+          fi
+          bash scripts/build-rpm.sh $ARGS
+
+      - name: Verify RPM
+        run: |
+          RPM_FILE=$(find dist -maxdepth 1 -name '*.rpm' | head -n1)
+          bash scripts/verify-rpm.sh "$RPM_FILE"
+
+      - name: Upload RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-desktop-rpm
+          path: dist/*.rpm
+
+      - name: Create GitHub Release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          files: dist/*.rpm
+          generate_release_notes: true
