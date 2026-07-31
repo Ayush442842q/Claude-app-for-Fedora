@@ -7,20 +7,29 @@ the same upstream version (e.g. a fix to `map-deps.sh`).
 
 ## Detecting new upstream versions
 
-Anthropic does not publish a versions feed or changelog RSS for Claude
-Desktop, so new releases currently have to be noticed manually (e.g. by
-checking https://claude.ai/download periodically). The weekly scheduled
-run of `.github/workflows/build-release.yml` is a placeholder for this —
-today it re-triggers with whatever version input was last used; wiring up
-real auto-detection is an open contribution area (see
-[CONTRIBUTING.md](../CONTRIBUTING.md)).
+Anthropic publishes Claude Desktop through a standard apt repository at
+`https://downloads.claude.ai/claude-desktop/apt/stable` (see the
+[official Linux docs](https://code.claude.com/docs/en/desktop-linux)).
+`scripts/fetch-deb.sh` reads that repo's `Packages` index directly and,
+when no `--version` is given, picks the newest version listed — so
+`./scripts/build-rpm.sh` with no arguments always builds the current
+upstream release.
 
-## Manually triggering a build for a new version
+The weekly scheduled run of `.github/workflows/build-release.yml` uses
+this same auto-detection, so it picks up new upstream releases on its
+own; a manual `workflow_dispatch` run with an explicit version is only
+needed to pin/re-build an older release.
 
-1. Find the new version number and download URL from
-   https://claude.ai/download.
-2. Go to Actions → "Build and release RPM" → "Run workflow", and supply
-   the version (and URL, if auto-discovery in `fetch-deb.sh` doesn't find
-   it).
-3. On success, the workflow publishes a GitHub Release with the built
-   `.rpm` attached.
+## Manually building a specific version
+
+```sh
+./scripts/build-rpm.sh --version <version> --arch amd64
+```
+
+Available versions/architectures can be inspected directly from the repo
+index:
+
+```sh
+curl -s https://downloads.claude.ai/claude-desktop/apt/stable/dists/stable/main/binary-amd64/Packages \
+  | grep '^Filename: pool/main/c/claude-desktop/claude-desktop_'
+```

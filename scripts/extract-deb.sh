@@ -33,20 +33,19 @@ fi
 
 tar -xf "$DATA_TAR" -C "$OUT_DIR/payload"
 
-APP_DIR="$(find "$OUT_DIR/payload" -maxdepth 4 -type d -iname 'claude-desktop' | head -n1)"
-if [[ -z "$APP_DIR" ]]; then
-    APP_DIR="$(find "$OUT_DIR/payload/usr/lib" -maxdepth 1 -mindepth 1 -type d | head -n1)"
-fi
+APP_DIR="$(find "$OUT_DIR/payload/usr/lib" -maxdepth 1 -mindepth 1 -type d | head -n1)"
 
 DESKTOP_FILE="$(find "$OUT_DIR/payload" -name '*.desktop' | head -n1)"
 ICON_DIR="$(find "$OUT_DIR/payload" -type d -path '*/icons/hicolor' | head -n1)"
 
-echo "app dir:     ${APP_DIR:-NOT FOUND}"
-echo "desktop file: ${DESKTOP_FILE:-NOT FOUND}"
-echo "icon dir:    ${ICON_DIR:-NOT FOUND}"
+# Diagnostics go to stderr only — stdout carries just the payload path,
+# since callers capture this script's stdout via command substitution.
+echo "app dir:     ${APP_DIR:-NOT FOUND}" >&2
+echo "desktop file: ${DESKTOP_FILE:-NOT FOUND}" >&2
+echo "icon dir:    ${ICON_DIR:-NOT FOUND}" >&2
 
 if [[ -z "$APP_DIR" || -z "$DESKTOP_FILE" ]]; then
-    cat >&2 <<'EOF'
+    cat >&2 <<EOF
 
 warning: could not confidently locate the app directory and/or .desktop
 file inside the extracted payload. Inspect "$OUT_DIR/payload" manually

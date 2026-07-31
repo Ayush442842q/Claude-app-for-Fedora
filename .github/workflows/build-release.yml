@@ -4,10 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Upstream Claude Desktop version to package (e.g. 0.9.3)"
-        required: true
-      deb_url:
-        description: "Optional explicit .deb download URL (overrides auto-discovery)"
+        description: "Upstream version to pin (leave blank to build the latest from the apt repo)"
         required: false
   schedule:
     - cron: "0 6 * * 1"
@@ -24,12 +21,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build RPM
+        id: build
         run: |
-          ARGS="--version ${{ github.event.inputs.version }}"
-          if [ -n "${{ github.event.inputs.deb_url }}" ]; then
-            ARGS="$ARGS --url ${{ github.event.inputs.deb_url }}"
+          ARGS=()
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            ARGS+=(--version "${{ github.event.inputs.version }}")
           fi
-          bash scripts/build-rpm.sh $ARGS
+          bash scripts/build-rpm.sh "${ARGS[@]}"
+          RPM_FILE=$(find dist -maxdepth 1 -name '*.rpm' | head -n1)
+          VERSION=$(rpm -qp --qf '%{VERSION}' "$RPM_FILE")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Verify RPM
         run: |
@@ -43,9 +44,8 @@ jobs:
           path: dist/*.rpm
 
       - name: Create GitHub Release
-        if: github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.event.inputs.version }}
+          tag_name: v${{ steps.build.outputs.version }}
           files: dist/*.rpm
           generate_release_notes: true

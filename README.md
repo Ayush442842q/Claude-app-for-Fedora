@@ -31,17 +31,23 @@ sudo dnf install ./claude-desktop-<version>.x86_64.rpm
 
 Requirements: `rpm-build`, `ar` (from `binutils`), `tar`, `curl`.
 
+Build the latest version automatically (queries Anthropic's apt repo
+index directly, per their [official Linux docs](https://code.claude.com/docs/en/desktop-linux)):
+
 ```sh
-./scripts/build-rpm.sh --version <upstream-version> [--url <deb-download-url>]
+./scripts/build-rpm.sh
 ```
 
-If automatic discovery of the upstream download URL fails (Anthropic does
-not publish a stable/documented URL for it), find the current Linux
-download link from https://claude.ai/download and pass it explicitly with
-`--url`, or download the `.deb` yourself and pass `--deb-path`:
+Or pin a specific version / architecture:
 
 ```sh
-./scripts/build-rpm.sh --version <upstream-version> --deb-path ./claude-desktop.deb
+./scripts/build-rpm.sh --version <upstream-version> --arch amd64
+```
+
+You can also build from an already-downloaded `.deb`:
+
+```sh
+./scripts/build-rpm.sh --deb-path ./claude-desktop.deb
 ```
 
 The built `.rpm` is written to `dist/`.
@@ -58,8 +64,10 @@ launches under Xvfb without crashing.
 
 ## How it works
 
-1. `scripts/fetch-deb.sh` — downloads (or accepts a local copy of) the
-   official Claude Desktop `.deb`.
+1. `scripts/fetch-deb.sh` — downloads the newest (or a pinned version of)
+   the official Claude Desktop `.deb` from Anthropic's apt repository
+   (`downloads.claude.ai/claude-desktop/apt/stable`), or accepts a local
+   copy.
 2. `scripts/extract-deb.sh` — unpacks the `.deb` and locates the Electron
    application, icons, and `.desktop` file inside it.
 3. `scripts/map-deps.sh` — translates the Debian runtime dependency list

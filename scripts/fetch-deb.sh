@@ -1,32 +1,30 @@
 #!/usr/bin/env bash
-# Downloads (or locates) the official Claude Desktop .deb package.
+# Downloads (or locates) the official Claude Desktop .deb package from
+# Anthropic's apt repository.
 #
 # Usage:
-#   fetch-deb.sh --version VERSION [--url URL] [--out DIR]
+#   fetch-deb.sh [--version VERSION] [--arch amd64|arm64] [--out DIR]
+#   fetch-deb.sh --url URL [--out DIR]
 #   fetch-deb.sh --deb-path /path/to/local/claude-desktop.deb
 #
-# Anthropic does not publish a stable, documented download URL for the
-# Claude Desktop .deb. This script supports three ways to get the file,
-# in order of preference:
-#   1. --deb-path: use an already-downloaded .deb as-is (no network access)
-#   2. --url: fetch from an explicit URL (use this once you've found the
-#      current download link, e.g. from claude.ai/download)
-#   3. --version + built-in candidate URL list: best-effort auto-discovery
-#      that is expected to need updating whenever Anthropic changes their
-#      distribution setup. If every candidate fails, the script exits with
-#      a clear error rather than silently producing a bad artifact.
+# With no --version, the newest package listed in the repo's Packages
+# index is used. Source: https://code.claude.com/docs/en/desktop-linux
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUT_DIR="${SCRIPT_DIR}/../dist/upstream"
 
+APT_BASE="https://downloads.claude.ai/claude-desktop/apt/stable"
+
 VERSION=""
 URL=""
 DEB_PATH=""
+ARCH="amd64"
 
 usage() {
-    echo "Usage: $0 --version VERSION [--url URL] [--out DIR]" >&2
+    echo "Usage: $0 [--version VERSION] [--arch amd64|arm64] [--out DIR]" >&2
+    echo "       $0 --url URL [--out DIR]" >&2
     echo "       $0 --deb-path /path/to/claude-desktop.deb" >&2
     exit 1
 }
@@ -34,6 +32,7 @@ usage() {
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --version) VERSION="$2"; shift 2 ;;
+        --arch) ARCH="$2"; shift 2 ;;
         --url) URL="$2"; shift 2 ;;
         --out) OUT_DIR="$2"; shift 2 ;;
         --deb-path) DEB_PATH="$2"; shift 2 ;;
@@ -43,59 +42,52 @@ while [[ $# -gt 0 ]]; do
 done
 
 mkdir -p "$OUT_DIR"
+DEST="$OUT_DIR/claude-desktop.deb"
 
 if [[ -n "$DEB_PATH" ]]; then
     if [[ ! -f "$DEB_PATH" ]]; then
         echo "error: --deb-path '$DEB_PATH' does not exist" >&2
         exit 1
     fi
-    cp -f "$DEB_PATH" "$OUT_DIR/claude-desktop.deb"
-    echo "$OUT_DIR/claude-desktop.deb"
+    cp -f "$DEB_PATH" "$DEST"
+    echo "$DEST"
     exit 0
 fi
 
-if [[ -z "$VERSION" && -z "$URL" ]]; then
-    echo "error: provide --deb-path, --url, or --version" >&2
-    usage
-fi
-
-# Known/likely candidate URL patterns for Anthropic's Claude Desktop .deb.
-# NOTE: unverified — this list must be checked/updated before relying on
-# auto-discovery. Kept as an ordered list so new patterns can be appended
-# without touching the rest of the script.
-CANDIDATE_URLS=()
 if [[ -n "$URL" ]]; then
-    CANDIDATE_URLS+=("$URL")
-elif [[ -n "$VERSION" ]]; then
-    CANDIDATE_URLS+=(
-        "https://desktop.anthropic.com/linux/claude-desktop_${VERSION}_amd64.deb"
-        "https://claude.ai/download/linux/claude-desktop_${VERSION}_amd64.deb"
-    )
+    curl -fSL --retry 2 -o "$DEST" "$URL"
+    echo "$DEST"
+    exit 0
 fi
 
-DEST="$OUT_DIR/claude-desktop.deb"
-DOWNLOADED=""
-
-for candidate in "${CANDIDATE_URLS[@]}"; do
-    echo "Trying: $candidate" >&2
-    if curl -fSL --retry 2 -o "$DEST" "$candidate"; then
-        DOWNLOADED="$candidate"
-        break
-    fi
-done
-
-if [[ -z "$DOWNLOADED" ]]; then
-    cat >&2 <<EOF
-error: could not download the official .deb from any known URL.
-
-Anthropic's download URL is not documented/stable, so auto-discovery is
-best-effort and will break when they change hosting. To unblock:
-  1. Find the current Linux download link from https://claude.ai/download
-  2. Re-run with:  fetch-deb.sh --url <the-link> --out "$OUT_DIR"
-  or download it manually and run:
-     fetch-deb.sh --deb-path /path/to/downloaded.deb
-EOF
+if [[ "$ARCH" != "amd64" && "$ARCH" != "arm64" ]]; then
+    echo "error: --arch must be amd64 or arm64" >&2
     exit 1
 fi
 
+# Look up the package path from the repo's index, matching how the
+# official docs' "install from a downloaded file" method works:
+# https://code.claude.com/docs/en/desktop-linux
+PACKAGES_URL="$APT_BASE/dists/stable/main/binary-${ARCH}/Packages"
+
+PACKAGES_INDEX="$(curl -fsSL "$PACKAGES_URL")" || {
+    echo "error: could not fetch $PACKAGES_URL" >&2
+    exit 1
+}
+
+if [[ -n "$VERSION" ]]; then
+    FILENAME="$(echo "$PACKAGES_INDEX" | grep "^Filename: pool/main/c/claude-desktop/claude-desktop_${VERSION}_" | tail -n1 | cut -d' ' -f2)"
+    if [[ -z "$FILENAME" ]]; then
+        echo "error: version '$VERSION' not found for arch '$ARCH' in $PACKAGES_URL" >&2
+        exit 1
+    fi
+else
+    FILENAME="$(echo "$PACKAGES_INDEX" | grep '^Filename: pool/main/c/claude-desktop/claude-desktop_' | sort -V | tail -n1 | cut -d' ' -f2)"
+    if [[ -z "$FILENAME" ]]; then
+        echo "error: no claude-desktop package found for arch '$ARCH' in $PACKAGES_URL" >&2
+        exit 1
+    fi
+fi
+
+curl -fSL --retry 2 -o "$DEST" "$APT_BASE/$FILENAME"
 echo "$DEST"

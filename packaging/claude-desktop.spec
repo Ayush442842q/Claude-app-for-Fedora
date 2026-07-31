@@ -2,26 +2,40 @@
 
 Name:           claude-desktop
 Version:        %{?app_version}%{!?app_version:0.0.0}
-Release:        1%{?dist}
+Release:        %{?app_release}%{!?app_release:1}%{?dist}
 Summary:        Claude Desktop, repackaged for Fedora/RPM-based distros
 
 License:        Proprietary
-URL:            https://claude.ai/download
+URL:            https://claude.ai
 # Source0 is staged by build-rpm.sh before rpmbuild runs; it is not a
 # plain upstream tarball, so it isn't listed here as a download URL.
 Source0:        claude-desktop-payload.tar.gz
 
-BuildArch:      x86_64
+BuildArch:      %{?app_rpm_arch}%{!?app_rpm_arch:x86_64}
 
+# Mirrors the upstream .deb's Depends: field, mapped to Fedora package
+# names via scripts/map-deps.sh. Update both if upstream's deps change.
 Requires:       gtk3
-Requires:       nss
-Requires:       alsa-lib
 Requires:       libnotify
-Requires:       libXScrnSaver
-Requires:       libXtst
+Requires:       nss
+Requires:       xdg-utils
 Requires:       at-spi2-core
-Requires:       libsecret
+Requires:       libdrm
 Requires:       mesa-libgbm
+Requires:       libxcb
+Requires:       libsecret
+Requires:       gvfs
+Requires:       libXtst
+Requires:       libuuid
+Requires:       xdg-desktop-portal
+Requires:       xdg-desktop-portal-gtk
+
+# Mirrors the upstream .deb's Recommends: field.
+Recommends:     alsa-lib
+Recommends:     pulseaudio
+Recommends:     libappindicator-gtk3
+Recommends:     ca-certificates
+Recommends:     gnome-keyring
 
 %description
 Unofficial repackaging of Anthropic's official Claude Desktop application
@@ -34,7 +48,10 @@ of Anthropic under Anthropic's own terms; only the packaging scripts in
 this project are separately licensed (see LICENSE).
 
 %prep
-%setup -q -c -n %{name}-%{version}
+# Source0 already has a top-level claude-desktop-%{version}/ directory
+# matching %{name}-%{version}, so a plain %setup is correct here; -c
+# would extract it a second level too deep.
+%setup -q
 
 %build
 # Nothing to build: the Electron app is used as extracted from upstream.
@@ -55,14 +72,20 @@ if [ -d icons/hicolor ]; then
     cp -a icons/hicolor/. %{buildroot}/usr/share/icons/hicolor/
 fi
 
-install -Dm755 claude-desktop.sh %{buildroot}/usr/bin/claude-desktop
+ln -sf ../lib/claude-desktop/claude-desktop %{buildroot}/usr/bin/claude-desktop
 
 %files
+# chrome-sandbox needs the setuid bit to run Chromium's SUID sandbox;
+# upstream's .deb ships it 4755, but plain (non-root) tar/ar extraction
+# drops that bit, so it's restored explicitly here regardless of which
+# user ran the packaging steps. (rpm warns "File listed twice" because
+# it's also covered by the directory entry below — harmless, the more
+# specific %attr line wins.)
+%attr(4755,root,root) /usr/lib/claude-desktop/chrome-sandbox
 /usr/lib/claude-desktop
 /usr/bin/claude-desktop
 /usr/share/applications/claude-desktop.desktop
 /usr/share/icons/hicolor
 
 %changelog
-* Thu Jan 01 1970 packager <packager@localhost> - 0.0.0-1
-- Initial spec scaffold; version is injected at build time by build-rpm.sh
+

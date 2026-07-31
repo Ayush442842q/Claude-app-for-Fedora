@@ -20,10 +20,11 @@ spec/script improvements especially.
 
 ## Reporting a broken build
 
-If `scripts/fetch-deb.sh` fails to auto-discover the current `.deb` URL,
-please open an issue with the current working download URL from
-https://claude.ai/download — Anthropic doesn't document a stable link, so
-this needs periodic manual updates.
+`scripts/fetch-deb.sh` reads Anthropic's apt repository index directly
+(`downloads.claude.ai/claude-desktop/apt/stable`). If it stops finding
+packages, check whether the repo layout described in
+https://code.claude.com/docs/en/desktop-linux has changed, and open an
+issue with what you find.
 
 ## Dependency mapping
 
