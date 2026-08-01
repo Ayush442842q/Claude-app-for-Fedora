@@ -11,9 +11,9 @@
 [![License: MIT](https://img.shields.io/github/license/Ayush442842q/Claude-app-for-Fedora)](LICENSE)
 [![Fedora](https://img.shields.io/badge/Fedora-RPM--based-51A2DA?logo=fedora&logoColor=white)](https://fedoraproject.org)
 
-<video src="https://github.com/Ayush442842q/Claude-app-for-Fedora/raw/main/assets/intro.mp4" poster="assets/intro-poster.png" width="720" controls muted playsinline></video>
+<a href="assets/intro.mp4"><img src="assets/intro.gif" alt="Claude Desktop for Fedora — 20-second intro" width="720"></a>
 
-<sub>▶ <a href="assets/intro.mp4">20-second intro</a> — if the player doesn't load, use the link.</sub>
+<sub>▶ <a href="assets/intro.mp4">Watch with sound</a> — 20s, MP4</sub>
 
 </div>
 
