@@ -33,6 +33,8 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Verify RPM
+        env:
+          CONTAINER_ENGINE: direct
         run: |
           RPM_FILE=$(find dist -maxdepth 1 -name '*.rpm' | head -n1)
           bash scripts/verify-rpm.sh "$RPM_FILE"
